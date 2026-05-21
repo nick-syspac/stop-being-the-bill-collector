@@ -6,9 +6,10 @@ import type {
   ProviderCredentials,
 } from "./types"
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2026-04-22.dahlia",
-})
+let _stripe: Stripe | undefined
+function getStripe(): Stripe {
+  return _stripe ?? (_stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2026-04-22.dahlia" }))
+}
 
 function normalizeStripeInvoice(invoice: Stripe.Invoice): NormalizedInvoice {
   const customer = invoice.customer as Stripe.Customer | null
@@ -36,7 +37,7 @@ export class StripeInvoiceProvider implements InvoiceProvider {
     const accountId = credentials.stripeConnectAccountId
     if (!accountId) return []
 
-    const invoices = await stripe.invoices.list(
+    const invoices = await getStripe().invoices.list(
       { status: "open", limit: 100 },
       { stripeAccount: accountId }
     )
@@ -58,7 +59,7 @@ export class StripeInvoiceProvider implements InvoiceProvider {
     if (!accountId) return null
 
     try {
-      const invoice = await stripe.invoices.retrieve(
+      const invoice = await getStripe().invoices.retrieve(
         externalId,
         undefined,
         { stripeAccount: accountId }
@@ -75,7 +76,7 @@ export class StripeInvoiceProvider implements InvoiceProvider {
     secret: string
   ): boolean {
     try {
-      stripe.webhooks.constructEvent(
+      getStripe().webhooks.constructEvent(
         payload,
         headers["stripe-signature"] ?? "",
         secret
