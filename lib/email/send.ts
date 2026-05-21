@@ -3,7 +3,10 @@ import { prisma } from "@/lib/prisma"
 import { renderTemplate, buildTemplateVars } from "./templates"
 import type { TrackedInvoice } from "@/lib/generated/prisma/client"
 
-const resend = new Resend(process.env.RESEND_API_KEY!)
+let _resend: Resend | undefined
+function getResend(): Resend {
+  return _resend ?? (_resend = new Resend(process.env.RESEND_API_KEY!))
+}
 
 /**
  * Resolve the "From" address for a user.
@@ -64,7 +67,7 @@ export async function sendFollowUpEmail(
   const { subject, html, text } = renderTemplate(stage, vars)
 
   try {
-    const result = await resend.emails.send({
+    const result = await getResend().emails.send({
       from,
       to: invoice.clientEmail,
       replyTo,

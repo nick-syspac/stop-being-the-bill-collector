@@ -5,7 +5,10 @@ import { Resend } from "resend"
 import { NextResponse } from "next/server"
 import { z } from "zod"
 
-const resend = new Resend(process.env.RESEND_API_KEY!)
+let _resend: Resend | undefined
+function getResend(): Resend {
+  return _resend ?? (_resend = new Resend(process.env.RESEND_API_KEY!))
+}
 
 const updateSchema = z.object({
   fromEmail: z.string().email(),
@@ -73,7 +76,7 @@ export async function PUT(request: Request) {
   // Trigger Resend sender verification if email changed
   if (emailChanged) {
     try {
-      await resend.domains.create({
+      await getResend().domains.create({
         name: fromEmail.split("@")[1],
         region: "us-east-1",
       })
